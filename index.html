@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中英配对消消乐</title>
+<style>
+  body {
+    background: linear-gradient(135deg, #fff7e6, #f0f7ff);
+    font-family: "Comic Sans MS", "Marker Felt", sans-serif;
+    text-align: center;
+    padding: 20px;
+    background-image: 
+      radial-gradient(#ffeb3b 0.5px, transparent 0.5px),
+      radial-gradient(#4caf50 0.5px, transparent 0.5px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+    position: relative;
+    min-height: 100vh;
+  }
+  h1 {
+    color: #e91e63;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+  }
+  p {
+    color: #555;
+    font-size: 1.1rem;
+  }
+  #controls {
+    margin: 15px 0;
+    padding: 15px;
+    background-color: rgba(255,255,255,0.8);
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    display: inline-block;
+  }
+  #controls button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 50px;
+    background-color: #4c91ff;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    margin: 0 8px;
+    transition: 0.2s;
+    font-family: "Comic Sans MS", sans-serif;
+    box-shadow: 0 4px 0 #357ae8;
+    position: relative;
+    top: 0;
+  }
+  #controls button:hover {
+    background-color: #357ae8;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #2860b3;
+  }
+  #controls button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #2860b3;
+  }
+  #game {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .card {
+    border-radius: 20px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+    padding: 15px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    height: 80px;
+    position: relative;
+    top: 0;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23ffffff20"><circle cx="12" cy="12" r="10"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .card:hover {
+    transform: scale(1.05) translateY(-3px);
+    box-shadow: 0 9px 0 rgba(0,0,0,0.1);
+  }
+  .matched {
+    visibility: hidden;
+  }
+  .shake {
+    animation: shake 0.3s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  #importArea {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: rgba(255,255,255,0.8);
+    border-radius: 20px;
+    display: inline-block;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  }
+  input[type=file] {
+    margin: 8px;
+    padding: 8px;
+    border-radius: 10px;
+    border: 2px dashed #ccc;
+    font-family: "Comic Sans MS", sans-serif;
+  }
+  input[type=file]::file-selector-button {
+    background-color: #ff9800;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: "Comic Sans MS", sans-serif;
+  }
+  /* 卡通化卡片颜色 */
+  .card.chinese {
+    background-color: #ffccd5;
+    border: 4px solid #ff8fab;
+  }
+  .card.english {
+    background-color: #c8e6c9;
+    border: 4px solid #81c784;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: rgba(255,255,255,0.5);
+    top: 8px;
+    right: 8px;
+  }
+  
+  /* 恭喜动画样式 */
+  #congrats {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.5s;
+  }
+  
+  #congrats.show {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  #congrats h2 {
+    font-size: 3rem;
+    color: #e91e63;
+    text-shadow: 3px 3px 0px #ffccd5;
+    margin-bottom: 20px;
+    transform: scale(0.5);
+    opacity: 0;
+    animation: popIn 0.5s forwards 0.3s;
+  }
+  
+  #congrats p {
+    font-size: 1.5rem;
+    color: #555;
+    margin-bottom: 30px;
+    transform: translateY(20px);
+    opacity: 0;
+    animation: fadeUp 0.5s forwards 0.6s;
+  }
+  
+  #confetti {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #ffeb3b;
+    opacity: 0;
+  }
+  
+  @keyframes popIn {
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeUp {
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  #playAgain {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 50px;
+    background-color: #4caf50;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    font-family: "Comic Sans MS", sans-serif;
+    box-shadow: 0 4px 0 #388e3c;
+    transform: scale(0.8);
+    opacity: 0;
+    animation: popIn 0.5s forwards 0.9s;
+  }
+  
+  #playAgain:hover {
+    background-color: #388e3c;
+    transform: scale(0.85);
+  }
+</style>
+</head>
+<body>
+<h1>🧸 中英配对消消乐 🧩</h1>
+<p>点击一个中文，再点击对应的英文即可配对哦！✨</p>
+
+<div id="controls">
+  <button onclick="initGame()">🔄 重新开始</button>
+  <label>🎵 点击音效 <input type="file" id="clickUpload" accept="audio/*"></label>
+  <label>🎵 成功音效 <input type="file" id="matchUpload" accept="audio/*"></label>
+  <label>🎵 错误音效 <input type="file" id="errorUpload" accept="audio/*"></label>
+</div>
+
+<div id="game"></div>
+
+<div id="importArea">
+  <input type="file" id="fileInput" accept=".csv">
+  <p>可以导入自己的词库哦（CSV格式）：每行格式为「中文,英文」</p>
+</div>
+
+<!-- 恭喜动画容器 -->
+<div id="congrats">
+  <h2>🎉 恭喜通关！🎉</h2>
+  <p>你真是太厉害了！</p>
+  <button id="playAgain" onclick="initGame()">再玩一次</button>
+  <div id="confetti"></div>
+</div>
+
+<!-- 默认音效 -->
+<audio id="clickSound" src="https://cdn.jsdelivr.net/gh/naptha/tiny-sound/sounds/button.mp3"></audio>
+<audio id="matchSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6a9e29efb4.mp3?filename=correct-2-46134.mp3"></audio>
+<audio id="errorSound" src="https://cdn.pixabay.com/download/audio/2021/09/16/audio_ef0cb1e05c.mp3?filename=error-126627.mp3"></audio>
+<audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/07/audio_32f85d3f29.mp3?filename=success-fanfare-trumpets-6185.mp3"></audio>
+
+<script>
+let pairs = [
+  ["苹果","apple"],["香蕉","banana"],["猫","cat"],["狗","dog"],
+  ["红色","red"],["蓝色","blue"],["书","book"],["椅子","chair"],
+  ["桌子","table"],["车","car"],["花","flower"],["太阳","sun"],
+  ["月亮","moon"],["水","water"],["火","fire"],["鱼","fish"],
+  ["鸟","bird"],["朋友","friend"],["学校","school"],["电脑","computer"]
+];
+
+let selected = [];
+let matchMap = {};
+let cards = [];
+const game = document.getElementById("game");
+const clickSound = document.getElementById("clickSound");
+const matchSound = document.getElementById("matchSound");
+const errorSound = document.getElementById("errorSound");
+const winSound = document.getElementById("winSound");
+const congratsScreen = document.getElementById("congrats");
+
+function initGame() {
+  // 隐藏恭喜界面
+  congratsScreen.classList.remove("show");
+  // 清空之前的彩屑
+  document.getElementById("confetti").innerHTML = "";
+  
+  game.innerHTML = "";
+  selected = [];
+  cards = [];
+  matchMap = {};
+  pairs.forEach(([cn, en]) => matchMap[cn] = en);
+  let allWords = pairs.flat();
+  shuffle(allWords);
+
+  allWords.forEach(word => {
+    const card = document.createElement("div");
+    card.className = "card";
+    // 添加语言类名用于样式区分
+    if (isChinese(word)) {
+      card.classList.add("chinese");
+    } else {
+      card.classList.add("english");
+    }
+    card.textContent = word;
+    card.dataset.word = word;
+    card.addEventListener("click", () => handleClick(card));
+    game.appendChild(card);
+    cards.push(card);
+  });
+}
+
+function handleClick(card) {
+  if (card.classList.contains("matched")) return;
+  clickSound.currentTime = 0;
+  clickSound.play();
+
+  if (selected.includes(card)) return;
+  card.style.transform = "scale(1.1) translateY(-5px)";
+  selected.push(card);
+
+  if (selected.length === 2) {
+    const [a, b] = selected;
+    if (isMatch(a.dataset.word, b.dataset.word)) {
+      matchSound.play();
+      a.classList.add("matched");
+      b.classList.add("matched");
+      // 添加配对成功动画
+      a.style.transform = "scale(1.2) rotate(5deg)";
+      b.style.transform = "scale(1.2) rotate(-5deg)";
+      setTimeout(() => {
+        a.style.visibility = "hidden";
+        b.style.visibility = "hidden";
+        
+        // 检查是否所有卡片都已匹配
+        checkAllMatched();
+      }, 300);
+    } else {
+      errorSound.play();
+      a.classList.add("shake");
+      b.classList.add("shake");
+      setTimeout(() => {
+        a.classList.remove("shake");
+        b.classList.remove("shake");
+      }, 400);
+    }
+    setTimeout(() => {
+      selected.forEach(c => c.style.transform = "");
+    }, 300);
+    selected = [];
+  }
+}
+
+// 检查是否所有卡片都已匹配
+function checkAllMatched() {
+  const allMatched = cards.every(card => card.classList.contains("matched"));
+  if (allMatched) {
+    // 所有卡片都匹配成功，显示恭喜动画
+    setTimeout(() => {
+      showCongrats();
+    }, 500);
+  }
+}
+
+// 显示恭喜界面和动画
+function showCongrats() {
+  winSound.play();
+  congratsScreen.classList.add("show");
+  createConfetti();
+}
+
+// 创建彩屑动画
+function createConfetti() {
+  const confettiContainer = document.getElementById("confetti");
+  const colors = ["#ffeb3b", "#4caf50", "#2196f3", "#e91e63", "#ff9800", "#9c27b0"];
+  const count = 150;
+  
+  for (let i = 0; i < count; i++) {
+    const confetti = document.createElement("div");
+    confetti.className = "confetti-piece";
+    
+    // 随机属性
+    const size = Math.random() * 10 + 5;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const startX = Math.random() * 100;
+    const rotation = Math.random() * 360;
+    const delay = Math.random() * 5;
+    const duration = Math.random() * 5 + 3;
+    
+    // 设置样式
+    confetti.style.width = `${size}px`;
+    confetti.style.height = `${size}px`;
+    confetti.style.backgroundColor = color;
+    confetti.style.left = `${startX}%`;
+    confetti.style.top = "-10px";
+    confetti.style.transform = `rotate(${rotation}deg)`;
+    confetti.style.opacity = Math.random() * 0.8 + 0.2;
+    
+    // 添加动画
+    confetti.animate([
+      { transform: `translateY(0) rotate(${rotation}deg)`, opacity: confetti.style.opacity },
+      { transform: `translateY(${window.innerHeight + 20}px) rotate(${rotation + 360}deg)`, opacity: 0 }
+    ], {
+      duration: duration * 1000,
+      delay: delay * 1000,
+      easing: "cubic-bezier(0.1, 0.8, 0.9, 1)"
+    });
+    
+    confettiContainer.appendChild(confetti);
+  }
+}
+
+function isMatch(a, b) {
+  return matchMap[a] === b || matchMap[b] === a;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function isChinese(str) {
+  return /[\u4e00-\u9fa5]/.test(str);
+}
+
+// 导入 CSV（从 Excel 导出）
+document.getElementById("fileInput").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    const lines = evt.target.result.split(/\r?\n/).filter(l => l.trim());
+    pairs = lines.map(line => line.split(",").map(x => x.trim())).filter(p => p.length === 2);
+    initGame();
+  };
+  reader.readAsText(file, "utf-8");
+});
+
+// 上传音效
+function setupAudioUpload(inputId, audioElement) {
+  document.getElementById(inputId).addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    audioElement.src = url;
+  });
+}
+
+setupAudioUpload("clickUpload", clickSound);
+setupAudioUpload("matchUpload", matchSound);
+setupAudioUpload("errorUpload", errorSound);
+
+initGame();
+</script>
+</body>
+</html>
